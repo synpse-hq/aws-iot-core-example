@@ -1,99 +1,29 @@
-# cloud-iot-example
+# AWS IoT Core Synpse example
 
-Public cloud IoT framework example contains IoT application example for public clouds.
+AWS IoT Core example contains IoT application example for AWS public cloud integration
 
-Synpse is not completing with any of the Public Cloud offerings. Contrary - it adds value ontop.
+Synpse is not competing with any of the Public Cloud offerings. Contrary - it adds value ontop.
 
-Most public cloud providers gives users framework to interact with their devices and consume their data.
+Most public cloud providers gives users a framework to interact with their devices and consume their data.
 It is very much `SAAS` layer product. Where `Synpse` allows you to manage devices in the lower layers, more like a `PAAS`.
 
 Working together with public cloud offerings you can create bespoke architectures.
 
 Cloud providers mostly provides "IoT hubs" for data ingestion and application layer interactions via MQTT. This allows 
-application layer integration. For the embedded applications this is fine, as application are part of hardware. But in the 
+application layer integration. For the embedded applications this is fine when application are part of hardware. But in the 
 "age of containers" we are used to packaging application outside of hardware and iterate on both independently.
 
 This is where Synpse comes in. It allows deploy and interact with your application as deployments. This way you can decouple your 
-application logic from deployment logic.
+application logic from hardware.
 
 ![Diagram](assets/diagram.png)
-
-## Repository structure
-
-1. `app` - Demo application using multiple cloud providers SDK's to send data. To keep it abstract it is taking device, it is running on, metrics and sending them over via NATS messaging.
-Application from first sight might look bit complicated (but it is not). This is so it represent more real life scenario. Where we have API server so external entities to the device could interact with the application, metrics gathering/backend process, messaging for async communication. This should be representing real world application usecase.
-
-All packages are explained bellow.
-
-* `cmd` - entrypoint for execution
-* `agent` - package level entrypoint, where we initiate all the services and run them as go routines
-* `api` - all shared types and structs
-* `metrics` - metrics collection package. We gather metrics and set them as prometheus exporters (optional in real world)
-* `metricsbride` - application internally accessing prometheus metrics set by `metrics` package and on timely basis sending them to NATS queue.
-* `service` - (Optional) API layer of the application. Currently exposing single `/metrics` endpoint with prometheus metrics. 
-
-2. `gateway` - Application subscribing to NATS and interacting with Cloud IoT. It subscribed to NATS messaging layer and send all messages as it is to the 
-IoT hub. Process could be reversed back too, where based on incoming messages we can call an API layer or send a message to different messaging topic/queue.
-
-
-## Azure IoT Hub 
-
-Create Azure IoT hub:
-```
-az iot hub create --resource-group MyResourceGroup --name MyIotHub --location eastus --tags synpse=true
-```
-
-Create device identity:
-```
-az iot hub device-identity create -n MyIotHub -d synpse  --ee
-```
-
-Create connection string for devices:
-```
-az iot hub connection-string  show --hub-name MyIotHub --device-id synpse
-```
-
-Note the connection string. We will use it when deploying Synpse application.
-Where to send messages really depends on your cloud architecture.
-
-For this example we gonna create message route to storage account blob:
-
-Create storage account:
-```
-az storage account create -n MyStorageAccountName -g MyResourceGroup -l eastus
-```
-
-Create container/bucket for results:
-```
-az storage container create --account-name MyStorageAccountName -n metrics
-```
-
-Create IoT hub endpoint for message routing:
-```
-storageConnectionString=$(az storage account show-connection-string --name MyStorageAccountName --query connectionString -o tsv)
-
-az iot hub routing-endpoint create --resource-group MyResourceGroup --hub-name MyIotHub \
-        --endpoint-name storage --endpoint-type azurestoragecontainer --endpoint-resource-group MyResourceGroup \
-        --endpoint-subscription-id $(az account show | jq -r .id) --connection-string $storageConnectionString \
-        --container-name metrics --batch-frequency 60 --chunk-size 10 \
-        --ff {iothub}-{partition}-{YYYY}-{MM}-{DD}-{HH}-{mm}
-```
-
-Use routing in question with our HUB:
-```
-az iot hub route create -g MyResourceGroup --hub-name MyIotHub --endpoint-name MyStorageAccountName --source-type DeviceMessages --route-name Route --condition true --enabled true
-```
-
-![Message flow](assets/azure-messages.png)
-
-Messages in the storage account:
-![Storage blob](assets/azure-storage-account2.png)
-
 # AWS IoT Core
 
-AWS uses certificate authentication, where Azure allows keys and certificates.
+For this application to work we need to setup AWS IoT Core and its pre-requisites. 
 
-Create a "thing"
+AWS uses certificate authentication.
+
+1. Create a "thing"
 
 ```
 aws iot create-thing --thing-name synpse
@@ -105,13 +35,13 @@ aws iot create-thing --thing-name synpse
 }
 ```
 
-Create policy for all devices:
+1. Create policy for all devices:
 
 ```
 aws iot create-policy --policy-name synpse-policy --policy-document file://assets/aws_iot_queue.policy
 ```
 
-Create certificate for your thing. AWS are very "user friendly" so we call our friend JQ to the help too.
+1. Create certificate for your thing. AWS are very "user friendly" so we call our friend JQ to the help too.
 ```
 aws iot create-keys-and-certificate \
     --set-as-active \
@@ -124,17 +54,19 @@ cat certificate.json | jq -r .keyPair.PublicKey > certificate.pub
 cat certificate.json | jq -r .keyPair.PrivateKey > certificate.key
 ```
 
+1. List current certificates
+
 ```
 aws iot list-certificates
 ```
 
-Attach policy to certificate:
+1. Attach policy to certificate (use ARN certificate value)
 
 ```
 aws iot attach-policy --policy-name synpse --target arn:aws:iot:us-east-1:632962303439:cert/xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 ```
 
-Attach thing to certificate:
+1. Attach thing to certificate
 
 ```
 aws iot attach-thing-principal \
@@ -142,12 +74,12 @@ aws iot attach-thing-principal \
     --thing-name synpse
 ```
 
-Download azure root CA from: https://docs.aws.amazon.com/iot/latest/developerguide/server-authentication.html
+1. Download AWS root CA from: https://docs.aws.amazon.com/iot/latest/developerguide/server-authentication.html
 
 
-Get endpoint:
+1. Get thing endpoint
 ```
- aws iot describe-endpoint
+aws iot describe-endpoint
 {
     "endpointAddress": "xxxxxxx.iot.us-east-1.amazonaws.com"
 }
@@ -157,41 +89,37 @@ Note: If you get `AWS_IO_TLS_ERROR_NEGOTIATION_FAILURE`, change endpoint to xxxx
 https://github.com/aws/aws-iot-device-sdk-python-v2/issues/52 
 
 
-Create S3 bucket for our metrics:
+1. Create S3 bucket for our metrics. This can be any other destination of your choice
 ```
 aws s3api create-bucket --bucket synpse-metrics --region us-east-1
 ```
 
-Go into AWS UI, IoT -> Act -> Rules and create a rule:
+1. Destination configuring and setting via CLI is bit flaky and CLI V2 throws few random errors (nothing new on AWS...)
+It is easier to do this via UI:
 
-with:
-S3 Bucket: synpse-metrics
-Key: synpse-metrics
+Click `Act -> Rules -> Create Rule`
 
-Create role: synpse
-
-Add Action:
-Select: `SELECT * FROM 'test/topic'` 
-
-TODO: It still does not work... :D
+* Name: `synpse-s3`
+* Query: `test/topic`
+* Add Action -> S3 Bucket. Select our S3 bucket, and Create Role for this.
 
 
-Application testing locally:
+# Deploy application
+
+Create synpse secret with certificates:
 
 ```
-python3 gateway/aws.py --endpoint a243pu5i3wf6nw-ats.iot.us-east-1.amazonaws.com --cert certificate.pem  --key certificate.key  --root-ca AmazonRootCA1.pem --topic test/topic
-
-Publishing message to topic 'test/topic': Hello World! [1]
-Received message from topic 'test/topic': b'"Hello World! [1]"'
-Publishing message to topic 'test/topic': Hello World! [2]
-Received message from topic 'test/topic': b'"Hello World! [2]"
+synpse secret create aws-cert --file certificate.pem
+synpse secret create aws-key --file certificate.key
+synpse secret create aws-root-ca --file AmazonRootCA1.pem
 ```
 
-![Storage blob](assets/aes-account-result.png)
+Deploy Synpse application. Modify application yaml with your thing endpoint.
 
-# Google Cloud IoT Core
+```
+synpse deploy -f synpse-aws-example.yaml
+```
 
+Once running, you should see application running and data coming into AWS S3 account
 
-Deploy Synpse application:
-
-TBD
+![Storage blob](assets/aws-account-result.png)

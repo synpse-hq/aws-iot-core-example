@@ -1,0 +1,37 @@
+name: AWS-IoT-Core
+description: AWS IoT Core Synpse example
+scheduling:
+  type: Conditional
+  selectors:
+    aws: iot    
+spec:
+  containers:
+  - name: nats
+    image: nats
+    ports:
+      - "4222:4222"
+      - "6222:6222"
+      - "8222:8222"
+  - name: app
+    image: quay.io/synpse/metrics-nats-example-app
+  - name: aws-iot
+    image: quay.io/synpse/aws-iot-core-example
+    forcePull: true
+    args:
+      - --endpoint 
+      - a243pu5xxxxx-ats.iot.us-east-1.amazonaws.com 
+      - --cert 
+      - /server/gateway/certificate.pem  
+      - --key 
+      - /server/gateway/certificate.key
+      - --root-ca 
+      - /server/gateway/AmazonRootCA1.pem
+      - --topic
+      - test/topic
+    secrets:
+      - name: aws-cert
+        filepath: /server/gateway/certificate.pem
+      - name: aws-key
+        filepath: /server/gateway/certificate.key
+      - name: aws-root-ca
+        filepath: /server/gateway/AmazonRootCA1.pem
