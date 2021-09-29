@@ -35,13 +35,13 @@ aws iot create-thing --thing-name synpse
 }
 ```
 
-1. Create policy for all devices:
+2. Create policy for all devices
 
 ```
 aws iot create-policy --policy-name synpse-policy --policy-document file://assets/aws_iot_queue.policy
 ```
 
-1. Create certificate for your thing. AWS are very "user friendly" so we call our friend JQ to the help too.
+3. Create certificate for your thing. AWS are very "user friendly" so we call our friend JQ to the help too.
 ```
 aws iot create-keys-and-certificate \
     --set-as-active \
@@ -54,19 +54,19 @@ cat certificate.json | jq -r .keyPair.PublicKey > certificate.pub
 cat certificate.json | jq -r .keyPair.PrivateKey > certificate.key
 ```
 
-1. List current certificates
+4. List current certificates
 
 ```
 aws iot list-certificates
 ```
 
-1. Attach policy to certificate (use ARN certificate value)
+5. Attach policy to certificate (use ARN certificate value)
 
 ```
 aws iot attach-policy --policy-name synpse --target arn:aws:iot:us-east-1:632962303439:cert/xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 ```
 
-1. Attach thing to certificate
+6. Attach thing to certificate
 
 ```
 aws iot attach-thing-principal \
@@ -74,10 +74,10 @@ aws iot attach-thing-principal \
     --thing-name synpse
 ```
 
-1. Download AWS root CA from: https://docs.aws.amazon.com/iot/latest/developerguide/server-authentication.html
+7. Download AWS root CA from: https://docs.aws.amazon.com/iot/latest/developerguide/server-authentication.html
 
 
-1. Get thing endpoint
+8. Get thing endpoint
 ```
 aws iot describe-endpoint
 {
@@ -89,12 +89,12 @@ Note: If you get `AWS_IO_TLS_ERROR_NEGOTIATION_FAILURE`, change endpoint to xxxx
 https://github.com/aws/aws-iot-device-sdk-python-v2/issues/52 
 
 
-1. Create S3 bucket for our metrics. This can be any other destination of your choice
+9. Create S3 bucket for our metrics. This can be any other destination of your choice
 ```
 aws s3api create-bucket --bucket synpse-metrics --region us-east-1
 ```
 
-1. Destination configuring and setting via CLI is bit flaky and CLI V2 throws few random errors (nothing new on AWS...)
+10. Destination configuring and setting via CLI is bit flaky and CLI V2 throws few random errors (nothing new on AWS...)
 It is easier to do this via UI:
 
 Click `Act -> Rules -> Create Rule`
