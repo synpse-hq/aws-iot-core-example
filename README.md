@@ -123,3 +123,12 @@ synpse deploy -f synpse-aws-example.yaml
 Once running, you should see application running and data coming into AWS S3 account
 
 ![Storage blob](assets/aws-account-result.png)
+
+
+# WTF's
+
+1. CLI was a disaster 5 years ago, it still is.
+
+2. Final steps of configuring rules is so ambiguous you need to click UI as CLI errors are crazy nonsense
+
+3. Focus on UI clicking over CLI is bit too much for my personal taste :)

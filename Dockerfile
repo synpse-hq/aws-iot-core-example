@@ -10,9 +10,9 @@ RUN apt-get -y update && \
 COPY ./gateway/requirements.txt requirements.txt
 RUN pip install -r requirements.txt
 
-COPY . .
+COPY ./gateway/* .
 
-RUN chmod 777 /server/gateway/aws.py
+RUN chmod 777 /server/aws.py
 
 ENTRYPOINT [ "python" ]
-CMD [ "/server/gateway/aws.py" ]
+CMD [ "/server/aws.py" ]

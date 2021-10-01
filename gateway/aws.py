@@ -7,9 +7,7 @@ from awscrt import io, mqtt
 from awsiot import mqtt_connection_builder
 import sys
 from nats.aio.client import Client as NATS
-import time
 from uuid import uuid4
-import json
 
 # This sample uses the Message Broker for AWS IoT to send and receive messages
 # through an MQTT connection. On startup, the device connects to the server,
