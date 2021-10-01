@@ -8,10 +8,6 @@ spec:
   containers:
   - name: nats
     image: nats
-    ports:
-      - "4222:4222"
-      - "6222:6222"
-      - "8222:8222"
   - name: app
     image: quay.io/synpse/metrics-nats-example-app
   - name: aws-iot
